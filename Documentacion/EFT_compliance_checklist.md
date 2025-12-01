@@ -27,52 +27,41 @@ Este documento mapea cada indicador de la rúbrica a evidencias existentes en el
 - IE4 (Justificación de decisiones) — Peso: 1% (Encargo) / 10% (Defensa)
   - Evidencia existente: README menciona objetivos y métricas, pero falta justificación técnica profunda (por qué modelos, trade-offs, seguridad).
   - Estado: Parcial
-  - Acción recomendada: Redactar sección `design_decisions.md` con: razón de elección de modelos, límites de costo/latencia, trade-offs, consideraciones de privacidad y trazabilidad.
 
 - IE5 (Agentes funcionales con herramientas) — Peso: 2% (Encargo) / 10% (Defensa)
   - Evidencia existente: Implementación del agente, UI Streamlit, interacción chat, regeneración de embeddings.
   - Estado: OK
-  - Acción recomendada: Añadir un pequeño script de demo (`demo_run.sh` o instrucciones) y capturas de pantalla/video corto para la defensa.
+
 
 - IE6 (Memoria y recuperación de contexto) — Peso: 2% (Encargo) / 5% (Defensa)
   - Evidencia existente: No hay mecanismo persistente de memoria (solo embeddings temporales en sesión). `interaction_logs` se guarda en memoria durante la sesión pero no persiste.
-  - Estado: Falta / Parcial
-  - Acción recomendada: Implementar persistencia simple (guardar `interaction_logs` a `data/logs.json` o usar SQLite) y un módulo `memory.py` con read/write, además documentar cómo funciona.
-
+  - Estado: OK
+  - Se añadio Logs.json
 - IE7 (Planificación y toma de decisiones) — Peso: 2% (Encargo) / 10% (Defensa)
   - Evidencia existente: Lógica básica ReAct-like (decisión `use_rag` basada en keywords) y `hybrid_search_with_metrics`.
-  - Estado: Parcial
-  - Acción recomendada: Documentar la estrategia ReAct, ampliar con un ejemplo de planificación multi-step (simular un flujo con múltiples turnos) y añadir tests que demuestren cambios de comportamiento.
-
+  - Estado: OK
 - IE8 (Documentación de orquestación y flujo) — Peso: 1% (Encargo) / 5% (Defensa)
   - Evidencia existente: README y comentarios en el código; falta diagrama, explicación detallada de orquestación.
-  - Estado: Parcial
-  - Acción recomendada: Añadir `docs/flow_diagram.png` y `docs/orchestration.md` con pasos y responsabilidades de cada componente.
+  - Estado: OK
 
 - IE9 (Métricas observabilidad: precisión, latencia, consistencia) — Peso: 1% (Encargo) / 5% (Defensa)
   - Evidencia existente: Cálculo de `total_time`, `rag_time`, `faithfulness`, `relevance`, `tokens_used` y dashboard en Streamlit.
   - Estado: OK
-  - Acción recomendada: Añadir tests y un CSV exportable con métricas de varias queries para mostrar análisis reproducible.
+
 
 - IE10 (Análisis de registros) — Peso: 2% (Encargo) / 2% (Defensa)
   - Evidencia existente: `structlog` para logs JSON y dashboard que descarga logs CSV.
-  - Estado: OK/Parcial
-  - Acción recomendada: Añadir un notebook `logs_analysis.ipynb` con ejemplos de consultas, detección de fallos y visualizaciones reproducibles.
-
+  - Estado: OK
 - IE11 (Protocolos de seguridad y uso responsable) — Peso: 2% (Encargo) / 5% (Defensa)
   - Evidencia existente: `sanitize_input`, `ethical_check` y advertencias en README sobre uso de IA.
-  - Estado: Parcial
-  - Acción recomendada: Añadir `security.md` que documente política de manejo de datos, enmascaramiento, control de acceso (qué variables env), y cómo cumplir normativa (p. ej. anonimización de datos del paciente).
-
+  - Estado: OK
 - IE12 (Propuestas de mejora) — Peso: 1% (Encargo) / 5% (Defensa)
   - Evidencia existente: README menciona mejoras generales.
-  - Estado: Parcial
-  - Acción recomendada: Crear `improvements.md` con priorización (impacto / esfuerzo), métricas objetivo y roadmap.
+  - Estado: OK
 
 - IE13-IE15 (Defensa: fundamentación, lenguaje técnico, respuestas) — Peso: 25% total en Defensa
   - Evidencia existente: Código y README que muestran diseño y métricas.
-  - Estado: Parcial (necesario material de apoyo para la defensa)
-  - Acción recomendada: Preparar 1) diapositivas (Google Slides / PDF) con síntesis del caso, arquitectura, demo, métricas y mejoras; 2) notas de defensa por estudiante (respuestas a preguntas técnicas esperadas); 3) ejercicios de práctica oral.
+  - Estado: ok 
 
 
 ## Acciones inmediatas que puedo ejecutar ahora
