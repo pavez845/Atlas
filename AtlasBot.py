@@ -1,13 +1,39 @@
-# =================================================================
-# Agente Funcional Médico - Hospital Barros Luco (v2 - Observabilidad)
-# Archivo: main_rag_agent_v2.py
-# =================================================================
+"""
+==============================================================
+ Agente Funcional Médico - Hospital Barros Luco (v2 Observabilidad)
+ Archivo: AtlasBot.py (único archivo, organizado por secciones)
+==============================================================
+
+Mapa rápido de secciones para defensa (rúbrica / puntos):
+    1. IMPORTS Y CONFIGURACIÓN (Infraestructura básica, carga .env)
+    2. LOGGING ESTRUCTURADO (IL3.2) -> structlog + formato JSON
+    3. TEMA UI / ESTÉTICA (IE5 soporte visual, accesibilidad)
+    4. CLASE PRINCIPAL (ChatbotMedicoRAG) - Estructura General
+             4.1 Inicialización y Cliente (OpenAI / GitHub Inference)
+             4.2 Documentos Base (Carga Hospital)
+             4.3 Embeddings y Recuperación (RAG híbrido)
+             4.4 Generación de Respuestas LLM + Métricas de Recursos
+             4.5 Seguridad y Ética (IL3.3 / IE6)
+             4.6 Métricas de Calidad (IL3.1)
+             4.7 Persistencia y Logs (IE3 / IE10 trazabilidad)
+             4.8 Limpieza y Mantenimiento
+    5. RATE LIMITER (Control de abuso / resiliencia básica)
+    6. UTILIDADES ASÍNCRONAS (Embeddings en background)
+    7. INTERFAZ STREAMLIT (Tabs: Chat / Documentos / Métricas)
+    8. BLOQUE PRINCIPAL (Protección de arranque y manejo de fallos)
+
+Convención comentarios: "IL" = Indicador de Log / Observabilidad, "IE" = Evidencia de Entrega.
+"""
+
+# ==============================================================
+# 1. IMPORTS Y CONFIGURACIÓN
+# ==============================================================
 import streamlit as st
 import os
 import json
 import time
 import uuid
-import re  # IL3.3: Para validación de inputs
+import re                     # (4.5) Seguridad / Sanitización
 from datetime import datetime
 import pandas as pd
 import numpy as np
@@ -15,21 +41,16 @@ from openai import OpenAI
 from sklearn.metrics.pairwise import cosine_similarity
 import plotly.express as px
 import plotly.graph_objects as go
-from collections import Counter, defaultdict
+from collections import defaultdict
 import requests
 import concurrent.futures
+import logging                 # (2) Logging estructurado
+import structlog               # (2) Logging estructurado
 
-# IL3.2: Configuración de Logs Estructurados
-import logging
-import structlog
-
-# Configuración básica de logging
-logging.basicConfig(
-    format="%(message)s",
-    level=logging.INFO,
-    handlers=[logging.StreamHandler()]
-)
-# Configuración para estructurar logs en JSON
+# ==============================================================
+# 2. LOGGING ESTRUCTURADO (IL3.2) - JSON para trazabilidad
+# ==============================================================
+logging.basicConfig(format="%(message)s", level=logging.INFO, handlers=[logging.StreamHandler()])
 structlog.configure(
     processors=[
         structlog.stdlib.add_log_level,
@@ -42,147 +63,55 @@ structlog.configure(
 )
 logger = structlog.get_logger()
 
-# Cargar variables de entorno (mantener compatibilidad)
+# Carga segura de variables de entorno (.env opcional)
 try:
     from dotenv import load_dotenv
     load_dotenv()
 except Exception:
-    pass
+    pass  # No crítico si falla
 
 # Variables de Entorno (adaptadas para OpenAI/Azure o GitHub inference)
 openai_api_key = os.getenv("OPENAI_API_KEY")
 openai_base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
 github_token = os.getenv("GITHUB_TOKEN")
-# URL que usas en .env para embeddings / inferencia GitHub
 github_inference_url = os.getenv("OPENAI_EMBEDDINGS_URL") or os.getenv("GITHUB_BASE_URL")
 
 st.set_page_config(page_title="🏥 Agente Médico Funcional v2 (Obs)", page_icon="🏥", layout="wide")
 
-# =================================================================
-# FUNCIÓN CSS DE TEMA HOSPITALARIO MEJORADA
-# =================================================================
 def inject_hospital_theme(logo_path: str = None):
-        """Inyecta CSS para tema hospitalario oscuro y de alto contraste.
-
-        - Paleta: azules y blanco (texto claro sobre fondo oscuro)
-        - Soporta mostrar un `logo_path` en la sidebar si existe
-        """
-        css = """
-        <style>
-        :root{
-            --color-50:  #F5FAFA;
-            --color-100: #EBF5F6;
-            --color-200: #E1F0F1;
-            --color-300: #D7EBED;
-            --color-400: #CCE6E8;
-            --color-500: #C2E1E3;
-            --color-600: #B8DCDF;
-            --color-700: #AED7DA;
-            --color-800: #A3D2D6;
-            --color-900: #99CDD1;
-            --color-950: #8EC8CD;
-
-            --color-mid: var(--color-500);
-
-            --brand-blue:  var(--color-50);
-            --brand-blue-2: var(--color-300);
-            --card:#ffffff;           /* cards blancos para legibilidad */
-            --muted:#6c757d;
-            --accent:var(--color-500);
-            --text:#012a4a;           /* letras en color oscuro para legibilidad */
-            --shadow: rgba(0,0,0,0.06);
-        }
-        /* Fondo app: gradiente pronunciado usando la escala de colores */
-        [data-testid="stAppViewContainer"], .stApp {
-            /* Gradiente simétrico: 50 -> 500 -> 50 */
-            /* overlay + base gradient: overlay tints to smooth transitions */
-            background-image: 
-                linear-gradient(rgba(78,169,177,0.12), rgba(78,169,177,0.12)),
-                linear-gradient(180deg,
-                    var(--color-50) 0%,
-                    var(--color-100) 8%,
-                    var(--color-200) 18%,
-                    var(--color-300) 28%,
-                    var(--color-400) 34%,
-                    var(--color-500) 36%,
-                    var(--color-mid) 35%,
-                    var(--color-mid) 65%,
-                    var(--color-500) 64%,
-                    var(--color-400) 70%,
-                    var(--color-300) 78%,
-                    var(--color-200) 86%,
-                    var(--color-100) 94%,
-                    var(--color-50) 100%
-                ) !important;
-            background-size: cover !important;
-            color: var(--text) !important;
-            background-attachment: fixed !important;
-        }
-        /* Sidebar */
-        [data-testid="stSidebar"], .sidebar, .css-1d391kg, .css-1v3fvcr {
-            background: linear-gradient(180deg, rgba(223,245,244,0.9) 0%, #ffffff 100%) !important;
-            color: var(--text) !important;
-        }
-        /* Botones */
-        .stButton>button, button[kind="primary"] {
-            background-color: var(--brand-blue-2) !important;
-            color: white !important;
-            border-radius: 8px !important;
-            border: none !important;
-            box-shadow: 0 4px 8px -2px var(--shadow) !important;
-        }
-        /* Cards / containers */
-        .stCard, [data-testid="stVerticalBlockBorderWrapper"], .css-18e3th9, .element-container {
-            background: var(--card) !important;
-            border-radius: 10px !important;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.06) !important;
-            padding: 12px !important;
-            color: var(--text) !important;
-            border: 1px solid rgba(0,0,0,0.04) !important;
-        }
-        /* Métricas */
-        [data-testid="stMetricValue"] { color: var(--brand-blue-2) !important; font-size: 2rem !important; }
-        /* Títulos y encabezados: usar color oscuro para legibilidad (igual al chat) */
-        h1, h2, h3, .css-1v0mbdj h1, .stMarkdown h1, .stMarkdown h2, .stMarkdown h3 {
-            color: var(--text) !important;
-        }
-        /* Subheaders y captions */
-        .css-1hq7z6c, .stCaption, .css-1aumxhk { color: var(--text) !important; }
-        /* Chat bubbles (mantener legibilidad con fondo Sea Glass) */
-        .stChatMessage .message.user { background: rgba(111,153,168,0.12) !important; color: #012a4a !important; border-radius:10px 10px 0 10px; padding:10px; }
-        .stChatMessage .message.assistant { background: rgba(255,255,255,0.95) !important; color: #012a4a !important; border-radius:10px 10px 10px 0; padding:10px; box-shadow:0 1px 3px rgba(0,0,0,0.04) !important; }
-        /* Expander header */
-        .streamlit-expanderHeader { color: var(--brand-blue) !important; font-weight: 700; }
-        /* Table/ DataFrame header */
-        .stDataFrame div[role="columnheader"] { background: rgba(15,120,140,0.06) !important; color: var(--text) !important; }
-        /* Títulos dentro de containers y cards (p. ej. subheaders del dashboard) */
-        .element-container h2, .element-container h3, .st-beta-text, .css-1v0mbdj {
-            color: var(--text) !important;
-        }
-        /* Links */
-        a { color: var(--brand-blue) !important; }
-        /* Small text muted */
-        .css-1offfwp, .css-1aw2w0m { color: var(--muted) !important; }
-        </style>
-        """
-        st.markdown(css, unsafe_allow_html=True)
-
-        # Logo opcional en la barra lateral (ignorar silenciosamente si no existe)
-        try:
-                import os
-
-                if logo_path and os.path.exists(logo_path):
-                        st.sidebar.image(logo_path, width=140)
-                        st.sidebar.markdown("### Hospital Barros Luco\nAgente Médico Funcional", unsafe_allow_html=True)
-        except Exception:
-                # no crash on missing os or image
-                pass
+    """(3) Tema visual hospitalario (paleta 'Sea Glass')."""
+    css = """
+    <style>
+    :root{
+        --color-50:#F5FAFA;--color-100:#EBF5F6;--color-200:#E1F0F1;--color-300:#D7EBED;--color-400:#CCE6E8;--color-500:#C2E1E3;
+        --color-600:#B8DCDF;--color-700:#AED7DA;--color-800:#A3D2D6;--color-900:#99CDD1;--color-950:#8EC8CD;--color-mid:var(--color-500);
+        --brand-blue:var(--color-50);--brand-blue-2:var(--color-300);--card:#ffffff;--muted:#6c757d;--accent:var(--color-500);--text:#012a4a;--shadow:rgba(0,0,0,0.06);
+    }
+    [data-testid="stAppViewContainer"], .stApp {background-image:linear-gradient(rgba(78,169,177,0.12),rgba(78,169,177,0.12)),linear-gradient(180deg,var(--color-50)0%,var(--color-100)8%,var(--color-200)18%,var(--color-300)28%,var(--color-400)34%,var(--color-500)36%,var(--color-mid)35%,var(--color-mid)65%,var(--color-500)64%,var(--color-400)70%,var(--color-300)78%,var(--color-200)86%,var(--color-100)94%,var(--color-50)100%)!important;background-size:cover!important;color:var(--text)!important;background-attachment:fixed!important;}
+    [data-testid="stSidebar"] {background:linear-gradient(180deg,rgba(223,245,244,0.9)0%,#ffffff 100%)!important;color:var(--text)!important;}
+    .stButton>button {background-color:var(--brand-blue-2)!important;color:#fff!important;border-radius:8px!important;border:none!important;box-shadow:0 4px 8px -2px var(--shadow)!important;}
+    .stCard,[data-testid="stVerticalBlockBorderWrapper"],.css-18e3th9,.element-container{background:var(--card)!important;border-radius:10px!important;box-shadow:0 4px 8px rgba(0,0,0,0.06)!important;padding:12px!important;color:var(--text)!important;border:1px solid rgba(0,0,0,0.04)!important;}
+    [data-testid="stMetricValue"]{color:var(--brand-blue-2)!important;font-size:2rem!important;}
+    h1,h2,h3{color:var(--text)!important;}
+    a{color:var(--brand-blue)!important;}
+    </style>
+    """
+    st.markdown(css, unsafe_allow_html=True)
+    try:
+        if logo_path and os.path.exists(logo_path):
+            st.sidebar.image(logo_path, width=140)
+            st.sidebar.markdown("### Hospital Barros Luco\nAgente Médico Funcional")
+    except Exception:
+        pass
 
 # =================================================================
 # Clase refactorizada con Trazabilidad y Seguridad (IL3.1, IL3.2, IL3.3)
 # =================================================================
 class ChatbotMedicoRAG:
-    """Clase principal del Agente Funcional Médico con RAG."""
+    """(4) Clase principal del Agente con capacidades RAG y métricas."""
+    # -----------------------------
+    # 4.1 Inicialización y Cliente
+    # -----------------------------
     def __init__(self):
         self.client = None
         self.llm_model = "gpt-4o-mini"
@@ -231,8 +160,11 @@ class ChatbotMedicoRAG:
             st.error(f"Error inicializando cliente: {e}")
             return False
 
+    # -----------------------------
+    # 4.2 Documentos Base (Hospital)
+    # -----------------------------
     def initialize_hospital_documents(self) -> bool:
-        """Carga documentos por defecto."""
+        """Carga documentos por defecto (fuente interna)."""
         try:
             docs = [
                 "El Hospital Barros Luco ubicado en Santiago de Chile cuenta con los siguientes servicios: Emergencias 24/7, Cuidados Intensivos (UCI), Cardiología, Neurología, Pediatría, Ginecología y Obstetricia, Oncología, Ortopedia y Traumatología, Radiología e Imágenes, Laboratorio Clínico, Farmacia, y Rehabilitación Física.",
@@ -252,8 +184,11 @@ class ChatbotMedicoRAG:
             st.warning(f"⚠ Error inicializando documentos: {e}")
             return False
 
+    # -----------------------------
+    # 4.3 Embeddings y Recuperación
+    # -----------------------------
     def _github_post(self, path, payload):
-        """POST genérico al endpoint de inferencia GitHub y devuelve JSON o lanza excepción."""
+        """POST genérico a GitHub inference (modo alternativo)."""
         url = f"{self.github_inference_url.rstrip('/')}/{path.lstrip('/')}"
         headers = {
             "Authorization": f"Bearer {self.github_token}",
@@ -310,7 +245,7 @@ class ChatbotMedicoRAG:
             return None
 
     def hybrid_search_with_metrics(self, query, top_k=3):
-        """Búsqueda híbrida y registro de tiempo."""
+        """Búsqueda híbrida (semantic + lexical) + latencia."""
         start = time.time()
         try:
             if not self.documents or self.embedding_matrix is None:
@@ -347,11 +282,11 @@ class ChatbotMedicoRAG:
             st.warning(f"⚠ Error en búsqueda híbrida: {e}")
             return [], 0.0
 
+    # -----------------------------
+    # 4.4 Generación de Respuesta LLM
+    # -----------------------------
     def generate_response_with_metrics(self, query, context):
-        """
-        Genera una respuesta con el LLM usando contexto.
-        Retorna (response_text, generation_time, used_context_text, tokens_used)
-        """
+        """Genera respuesta LLM con contexto y reporta uso de tokens."""
         start = time.time()
         tokens_used = {'prompt_tokens': 0, 'completion_tokens': 0, 'total_tokens': 0}
         try:
@@ -393,9 +328,9 @@ class ChatbotMedicoRAG:
             generation_time = time.time() - start
             return f"Error generando respuesta: {e}", generation_time, context, tokens_used
 
-    # -------------------------
-    # IL3.3: Funciones de Seguridad y Ética
-    # -------------------------
+    # -----------------------------
+    # 4.5 Seguridad y Ética (IL3.3 / IE6)
+    # -----------------------------
     def sanitize_input(self, user_input):
         """
         IE6: Saneamiento de input para mitigar Prompt Injection y XSS (aunque es menos relevante aquí).
@@ -435,10 +370,11 @@ class ChatbotMedicoRAG:
     # -------------------------
     # Lógica central del Agente (ReAct-like)
     # -------------------------
+    # -----------------------------
+    # 4.6 Lógica Central (Decisión RAG / Directo)
+    # -----------------------------
     def run_agent_logic(self, query):
-        """
-        IE3/IL3.2: Reemplaza AgentExecutor: decide si usar RAG (documentos) o responder directo (LLM).
-        """
+        """Decide vía heurística si aplica RAG y calcula métricas finales."""
         # IL3.3: 1. Seguridad y Ética
         cleaned_query = self.sanitize_input(query)
         is_ethical, ethical_message = self.ethical_check(cleaned_query)
@@ -493,9 +429,9 @@ class ChatbotMedicoRAG:
 
         return response, metrics, results
 
-    # -------------------------
-    # IL3.1: Métricas de Calidad
-    # -------------------------
+    # -----------------------------
+    # 4.7 Métricas de Calidad (IL3.1)
+    # -----------------------------
     def evaluate_faithfulness(self, query, context_text, response_text):
         # Heurística simple para medir consistencia con el contexto (faithfulness)
         try:
@@ -537,11 +473,11 @@ class ChatbotMedicoRAG:
         except Exception:
             return 0.0
 
-    # -------------------------
-    # IL3.2: Registro de Interacciones y Logs
-    # -------------------------
+    # -----------------------------
+    # 4.7 (continuación) Persistencia y Logs (IE3 / IE10)
+    # -----------------------------
     def log_interaction(self, query, response, metrics, results, error_occurred):
-        """IE3: Registra interacción en self.interaction_logs."""
+        """Registra interacción y persiste (trazabilidad)."""
         try:
             entry = {
                 'id': str(uuid.uuid4()),
@@ -631,11 +567,11 @@ class ChatbotMedicoRAG:
                 return []
         return []
 
+    # -----------------------------
+    # 4.8 Extensión / Documentos Externos
+    # -----------------------------
     def add_external_documents(self, documents: list):
-        """Añade documentos externos a la base de conocimiento y regenera embeddings.
-
-        documents: lista de strings
-        """
+        """Agrega documentos externos y regenera embeddings."""
         try:
             if not documents:
                 return False
@@ -676,7 +612,7 @@ class ChatbotMedicoRAG:
         return False
 
     def clean_placeholder_documents(self) -> bool:
-        # ... (código de limpieza de documentos)
+        """Limpia documentos triviales / placeholder para mantener calidad."""
         try:
             if not self.documents:
                 return True
@@ -697,6 +633,9 @@ class ChatbotMedicoRAG:
             logger.error("data_cleaning", error=str(e), message="Error cleaning placeholder documents")
             return False
 
+ # ==============================================================
+ # 5. RATE LIMITER (Control simple de frecuencia)
+ # ==============================================================
 class RateLimiter:
     def __init__(self, requests_per_minute=60):
         self.requests_per_minute = requests_per_minute
@@ -712,6 +651,9 @@ class RateLimiter:
         self.user_requests[user_id].append(now)
         return True
 
+ # ==============================================================
+ # 6. UTILIDAD ASÍNCRONA (Embeddings en segundo plano)
+ # ==============================================================
 _executor = concurrent.futures.ThreadPoolExecutor(max_workers=4)
 
 def async_get_embeddings(chatbot, documents):
@@ -722,8 +664,11 @@ def async_get_embeddings(chatbot, documents):
 # =================================================================
 # Streamlit UI (IE5: Dashboard) - CÓDIGO ACTUALIZADO
 # =================================================================
+ # ==============================================================
+ # 7. INTERFAZ STREAMLIT (Tabs: Chat / Documentos / Métricas)
+ # ==============================================================
 def main():
-    # inyectar tema al inicio de la app
+    # Tema inicial
     inject_hospital_theme(logo_path="assets/hospital_logo.png")
 
     if "chatbot_rag" not in st.session_state:
@@ -758,9 +703,7 @@ def main():
     tabs = st.tabs(["💬 Chat", "📄 Documentos", "📊 Métricas y Dashboard"])
     tab1, tab2, tab3 = tabs
 
-    # =================================================================
-    # TAB 1: CHAT (con Trazabilidad Mejorada)
-    # =================================================================
+    # ----------------------- TAB 1: CHAT -----------------------
     with tab1:
         st.subheader("💬 Agente Funcional Médico (HBL)")
         for message in st.session_state.messages:
@@ -809,9 +752,7 @@ def main():
                                 st.info("No se utilizó RAG (respuesta directa del LLM).")
                     # -----------------------------------
 
-    # =================================================================
-    # TAB 2: DOCUMENTOS (Sin cambios funcionales, sólo UI)
-    # =================================================================
+    # -------------------- TAB 2: DOCUMENTOS --------------------
     with tab2:
         st.header("📄 Gestión de Documentos y Embeddings")
         st.info("Aquí puedes ver y gestionar los documentos de conocimiento del Hospital Barros Luco. Estos documentos son la base para el componente RAG.")
@@ -877,9 +818,7 @@ def main():
             except Exception as e:
                 st.error(f"Error procesando archivo: {e}")
 
-    # =================================================================
-    # TAB 3: DASHBOARD (Rediseñado para Observabilidad)
-    # =================================================================
+    # -------------------- TAB 3: DASHBOARD ---------------------
     with tab3:
         st.header("📊 Dashboard de Observabilidad del Agente")
         logs = st.session_state.chatbot_rag.interaction_logs or []
@@ -1032,6 +971,9 @@ def main():
             st.dataframe(display_df, height=300, use_container_width=True)
 
 
+ # ==============================================================
+ # 8. BLOQUE PRINCIPAL (Manejo de errores global)
+ # ==============================================================
 if __name__ == "__main__":
     try:
         main()
@@ -1042,7 +984,7 @@ if __name__ == "__main__":
         try:
             st.set_page_config(page_title="Error - Agente Médico", layout="wide")
             st.title("❌ Error al iniciar la aplicación")
-            st.error("Ha ocurrido una excepción no manejada. Revisa la terminal (logs JSON) para más detalles.")
+            st.error("Excepción no manejada. Revisar logs estructurados.")
             st.subheader("Traceback (resumen)")
             st.code(tb)
         except Exception:

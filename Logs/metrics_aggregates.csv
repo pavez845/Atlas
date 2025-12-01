@@ -1,7 +1,0 @@
-metric,value
-avg_total_time,3.0416465600331627
-total_tokens,471
-avg_faithfulness,0.0
-avg_relevance,4.666666666666667
-avg_context_precision,0.3333333333333333
-error_rate,0.0
