@@ -1,0 +1,69 @@
+[
+  {
+    "id": "a4034702-9398-45ad-8a93-00db1adf87e4",
+    "timestamp": "2025-11-30T21:27:37.869536",
+    "query": "Hola buenas",
+    "response": "¡Hola! Buenas, ¿en qué puedo ayudarte?",
+    "metrics": {
+      "total_time": 2.3520936965942383,
+      "faithfulness": 0.0,
+      "relevance": 10.0,
+      "context_precision": 0.0,
+      "tokens_used": {
+        "prompt_tokens": 25,
+        "completion_tokens": 13,
+        "total_tokens": 38
+      },
+      "rag_time": 0.0
+    },
+    "error_occurred": false,
+    "context_count": 0,
+    "context_scores": []
+  },
+  {
+    "id": "ba61c524-4eb5-4b87-9c53-aa90a18d8130",
+    "timestamp": "2025-11-30T21:28:18.769410",
+    "query": "me dices los horarios por favor?",
+    "response": "Los horarios son los siguientes:\n\n- **Emergencias:** 24 horas.\n- **Consultas externas:** \n  - Lunes a Viernes: 7:00 AM - 6:00 PM\n  - Sábados: 8:00 AM - 2:00 PM\n- **Horarios de visita en hospitalización:** \n  - 2:00 PM - 4:00 PM \n  - 6:00 PM - 8:00 PM",
+    "metrics": {
+      "total_time": 4.882530450820923,
+      "faithfulness": 0.0,
+      "relevance": 4.0,
+      "context_precision": 1.0,
+      "tokens_used": {
+        "prompt_tokens": 293,
+        "completion_tokens": 100,
+        "total_tokens": 393
+      },
+      "rag_time": 2.1339986324310303
+    },
+    "error_occurred": false,
+    "context_count": 3,
+    "context_scores": [
+      0.37387306522777697,
+      0.34297210452996985,
+      0.25956416883617595
+    ]
+  },
+  {
+    "id": "b38e7788-2b5c-4aae-986c-5c803852c576",
+    "timestamp": "2025-11-30T21:28:28.447386",
+    "query": "cuanto es 2+2",
+    "response": "2 + 2 es igual a 4.",
+    "metrics": {
+      "total_time": 1.8903155326843262,
+      "faithfulness": 0.0,
+      "relevance": 0.0,
+      "context_precision": 0.0,
+      "tokens_used": {
+        "prompt_tokens": 29,
+        "completion_tokens": 11,
+        "total_tokens": 40
+      },
+      "rag_time": 0.0
+    },
+    "error_occurred": false,
+    "context_count": 0,
+    "context_scores": []
+  }
+]
