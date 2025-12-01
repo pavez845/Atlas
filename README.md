@@ -80,8 +80,8 @@ El archivo `AtlasBot.py` está organizado en **8 secciones principales** para fa
    - **4.5 Seguridad y Ética (IL3.3 / IE6)**: Sanitización de inputs, filtro ético, detección de inyección de prompts
    - **4.6 Lógica Central (Decisión RAG/Directo)**: Heurística de routing y orquestación de herramientas
    - **4.7 Métricas de Calidad (IL3.1)**: Cálculo de faithfulness, relevance, context precision
-   - **4.7 (continuación) Persistencia y Logs (IE3/IE10)**: Guardado de interacciones con enmascaramiento de PII
-   - **4.8 Extensión / Documentos Externos**: Función para añadir docs dinámicamente
+   - **4.7 (continuación) Persistencia y Logs (IE3/IE10)**: Guardado de interacciones con enmascaramiento de PII, **carga automática de logs al iniciar** (IE6)
+   - **4.8 Extensión / Documentos Externos (IE2)**: Función para añadir docs dinámicamente desde **fuentes externas** (CSV, TXT, JSON)
 
 **5. RATE LIMITER**
    - Control básico de frecuencia por usuario (anti-abuso)
@@ -91,11 +91,50 @@ El archivo `AtlasBot.py` está organizado en **8 secciones principales** para fa
 
 **7. INTERFAZ STREAMLIT**
    - **Tab 1 (Chat)**: Interfaz conversacional con trazabilidad expandible por respuesta
-   - **Tab 2 (Documentos)**: Gestión de base de conocimiento y carga de archivos externos
+   - **Tab 2 (Documentos)**: Gestión de base de conocimiento y **carga de archivos externos** (CSV/TXT como fuentes externas - IE2)
    - **Tab 3 (Dashboard)**: Observabilidad (rendimiento, calidad, logs, gráficos Plotly)
 
 **8. BLOQUE PRINCIPAL**
    - Manejo de errores global y registro de crashes
+
+---
+
+### Integración de Fuentes Externas (IE2)
+
+El sistema integra **fuentes de datos internas y externas**:
+
+**Fuentes Internas** (precargadas automáticamente):
+- 10 documentos base del Hospital Barros Luco (horarios, departamentos, procedimientos administrativos)
+- Ubicación: Embebidos en `initialize_hospital_documents()` (líneas 160-250 de `AtlasBot.py`)
+
+**Fuentes Externas** (carga dinámica):
+- **CSV**: Columnas `content`, `text`, o `documento` → procesadas automáticamente
+- **TXT**: Texto plano → dividido por párrafos o líneas
+- **JSON**: Formato `data/external_docs.json` → lista de documentos
+- **Interfaz**: Tab "Documentos" → File uploader → Botón "Agregar a la base de conocimiento"
+- **Proceso**: 
+  1. Usuario sube archivo → parsing automático
+  2. Sistema genera embeddings para nuevos documentos
+  3. Matriz de embeddings se regenera (búsqueda híbrida actualizada)
+  4. Documentos persisten en `data/external_docs.json`
+
+**Ejemplo de uso** (demostrable en defensa):
+```python
+# Usuario sube protocolos_covid.csv con columna 'content'
+# Sistema detecta 15 protocolos nuevos
+# Click en "Agregar a la base de conocimiento"
+# Embeddings regenerados (ahora 25 documentos totales: 10 internos + 15 externos)
+# Consulta: "¿Cuál es el protocolo COVID actual?" → Responde con info del CSV
+```
+
+**Evidencia en código**:
+- Función `add_external_documents()` (líneas 635-660)
+- File uploader en Tab 2 (líneas 780-820)
+- Persistencia en `data/external_docs.json`
+
+**Limitación actual**: No hay integración con APIs en tiempo real (ej: sistema FHIR hospitalario). Ver `Documentacion/Mejoras.md` Sección 3.1 para roadmap de integración API externa.
+
+---
 
 ### Guía para la defensa
 - **Observabilidad (IL3.2)**: Ver sección 2 (structlog) y 4.7 (logs de interacción).

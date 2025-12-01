@@ -91,7 +91,12 @@ def inject_hospital_theme(logo_path: str = None):
     [data-testid="stSidebar"] {background:linear-gradient(180deg,rgba(223,245,244,0.9)0%,#ffffff 100%)!important;color:var(--text)!important;}
     .stButton>button {background-color:var(--brand-blue-2)!important;color:#fff!important;border-radius:8px!important;border:none!important;box-shadow:0 4px 8px -2px var(--shadow)!important;}
     .stCard,[data-testid="stVerticalBlockBorderWrapper"],.css-18e3th9,.element-container{background:var(--card)!important;border-radius:10px!important;box-shadow:0 4px 8px rgba(0,0,0,0.06)!important;padding:12px!important;color:var(--text)!important;border:1px solid rgba(0,0,0,0.04)!important;}
-    [data-testid="stMetricValue"]{color:var(--brand-blue-2)!important;font-size:2rem!important;}
+    [data-testid="stMetric"] {background:rgba(255,255,255,0.9)!important;padding:16px!important;border-radius:12px!important;box-shadow:0 2px 8px rgba(0,0,0,0.08)!important;border:1px solid rgba(78,169,177,0.2)!important;}
+    [data-testid="stMetricValue"]{color:#0d6efd!important;font-size:2rem!important;font-weight:600!important;}
+    [data-testid="stMetricLabel"]{color:#012a4a!important;font-size:0.95rem!important;font-weight:500!important;}
+    [data-testid="stMetricDelta"]{color:#6c757d!important;}
+    [data-testid="stFileUploader"] label, [data-testid="stFileUploader"] span, [data-testid="stFileUploader"] p {color:#012a4a!important;font-weight:500!important;}
+    [data-testid="stFileUploader"] small {color:#495057!important;}
     h1,h2,h3{color:var(--text)!important;}
     a{color:var(--brand-blue)!important;}
     </style>
@@ -353,11 +358,26 @@ class ChatbotMedicoRAG:
         """
         IE6: Filtro ético para contenido dañino o fuera de alcance médico.
         """
-        prohibited_keywords = ["hackear", "suicidio", "violencia", "terrorismo", "drogas ilegales"]
+        prohibited_keywords = [
+            "suicid", "suicidi", "matarme", "morir", "muerte",  # Salud mental crítica
+            "hackear", "hack", "exploit", "vulnerabilidad",  # Seguridad
+            "violencia", "violen", "agredir", "golpear", "matar", "dañ", "herir", "lastim", "pegar",  # Violencia y daño
+            "terrorismo", "terrorista", "bomba", "explosivo", "atentado",  # Terrorismo
+            "droga", "cocaína", "heroína", "metanfetamina", "narcotraf",  # Drogas ilegales
+            "arma", "pistola", "rifle", "ametralladora", "cuchillo"  # Armas
+        ]
         for keyword in prohibited_keywords:
             if keyword in query.lower():
-                logger.warning("ethical_violation", type="harmful_content", query=query[:50], action="blocked")
-                return False, "Lo siento, no puedo ayudar con solicitudes relacionadas con ese tema. Por favor, realiza una consulta sobre los servicios médicos del Hospital Barros Luco."
+                logger.warning("ethical_violation", type="harmful_content", keyword=keyword, query=query[:50], action="blocked")
+                # Mensaje con recursos de ayuda
+                return False, (
+                    "Lo siento, no puedo ayudar con ese tipo de consultas. "
+                    "Si estás pasando por un momento difícil, por favor contacta:\n\n"
+                    "🆘 **Salud Responde (Minsal Chile)**: 600 360 7777\n"
+                    "🆘 **Línea de Prevención del Suicidio**: 1412 (24/7 gratuito)\n"
+                    "🆘 **Urgencias Hospital Barros Luco**: +56 2 2576 2000\n\n"
+                    "Para consultas sobre servicios del hospital, pregúntame sobre horarios, ubicaciones o procedimientos administrativos."
+                )
 
         # IE6: Advertencia para temas sensibles (Consejo Legal/Financiero/Específico no médico)
         sensitive_keywords = ["inversión", "abogado", "ley", "demanda"]
@@ -767,7 +787,7 @@ def main():
         else:
             st.warning("Embeddings no generados o fallidos.")
 
-        if st.button("🔄 Regenerar Embeddings"):
+        if st.button("🔄 Regenerar Embeddings", type="primary"):
             with st.spinner("Generando Embeddings..."):
                 st.session_state.chatbot_rag.get_embeddings(st.session_state.chatbot_rag.documents)
             try:
@@ -862,6 +882,7 @@ def main():
                     color='Componente',
                     color_discrete_map={'RAG Time': '#0d6efd', 'LLM Gen Time': '#0b5ed7'}
                 )
+                fig_comp.update_layout(template='plotly_white', title_font_size=16)
                 st.plotly_chart(fig_comp, use_container_width=True)
 
             with col_chart_2:
@@ -873,6 +894,7 @@ def main():
                     color_discrete_sequence=['#0d6efd', '#6c757d']
                 )
                 fig_decision.update_traces(textposition='inside', textinfo='percent+label')
+                fig_decision.update_layout(template='plotly_white', title_font_size=16)
                 st.plotly_chart(fig_decision, use_container_width=True)
 
             st.markdown("---")
@@ -891,7 +913,7 @@ def main():
                         hole=.3,
                         marker={'colors': ['#0d6efd' if l == 'Éxito' else '#dc3545' for l in error_counts.index]}
                     )])
-                    fig_error.update_layout(title_text="Proporción de Éxito/Error")
+                    fig_error.update_layout(title_text="Proporción de Éxito/Error", template='plotly_white', title_font_size=16)
                     st.plotly_chart(fig_error, use_container_width=True)
                 else:
                     st.info("No hay suficiente información de errores.")
@@ -910,6 +932,7 @@ def main():
                                      title='Puntajes Promedio de Calidad', color='Métrica',
                                      range_y=[0, 10],
                                      color_discrete_map={'Faithfulness': '#198754', 'Relevance': '#ffc107', 'Context Precision': '#0d6efd'})
+                fig_quality.update_layout(template='plotly_white', title_font_size=16)
                 st.plotly_chart(fig_quality, use_container_width=True)
 
             st.markdown("---")
@@ -919,15 +942,16 @@ def main():
             st.info("Los logs estructurados completos (JSON) están en la terminal para un análisis detallado de cada paso.")
 
             st.download_button(
-                label="Descargar Logs de Interacción (CSV)",
+                label="📥 Descargar Logs de Interacción (CSV)",
                 data=df.to_csv().encode('utf-8'),
                 file_name=f'logs_interacciones_hbl_{datetime.now().strftime("%Y%m%d_%H%M")}.csv',
                 mime='text/csv',
+                type="primary"
             )
             # Guardar / Cargar logs (JSON) - persistencia local
             col_save, col_load = st.columns([1, 2])
             with col_save:
-                if st.button("💾 Guardar logs en data/logs.json"):
+                if st.button("💾 Guardar logs en data/logs.json", type="primary"):
                     try:
                         saved = st.session_state.chatbot_rag._save_logs()
                         if saved:
