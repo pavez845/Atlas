@@ -1,11 +1,14 @@
 # data/
 
-This folder contains runtime data produced by the app. It is not committed to version control (add to .gitignore if needed).
+Carpeta de datos en tiempo de ejecución generados por la aplicación. No se recomienda incluir estos archivos en el control de versiones (añadir `data/` a `.gitignore` si procede).
 
-Files:
-- `logs.json`: persistent dump of `interaction_logs` recorded by the agent. Each item is a JSON object with fields:
+Contenido principal
+- `logs.json`: volcado persistente de `interaction_logs` generado por el agente. Cada entrada es un objeto JSON con los campos:
   - `id`, `timestamp`, `query`, `response`, `metrics`, `error_occurred`, `context_count`, `context_scores`.
 
-Usage:
-- The Streamlit dashboard provides a button to save current logs to `data/logs.json` and an uploader to load a JSON file into the session.
-- To include logs in your submission, export from the dashboard as CSV or copy `data/logs.json`.
+Uso
+- El dashboard de Streamlit incluye un botón para guardar los logs actuales en `data/logs.json` y un cargador para restaurar un archivo JSON en la sesión.
+- Para incluir logs en la entrega, exporta desde el dashboard como CSV o adjunta `data/logs.json` (siempre redacted o sintético).
+
+Recomendaciones de seguridad
+- No subir `data/logs.json` que contenga datos reales de pacientes. Antes de compartir, asegúrate de que el contenido está anonimizado o sintetizado.

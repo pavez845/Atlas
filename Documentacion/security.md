@@ -1,14 +1,17 @@
-# Security and Responsible Use (Resumen)
+```markdown
+# Seguridad y Uso Responsable (Resumen)
 
-Este documento resume los protocolos de seguridad implementados (IE11) y pasos recomendados.
+Este documento resume los protocolos de seguridad implementados (IE11) y las recomendaciones para su manejo.
 
-Implemented:
-- `sanitize_input` to remove potentially dangerous characters and neutralize prompt-injection patterns.
-- `ethical_check` to block harmful or out-of-scope queries.
-- PII masking in log persistence (`_mask_pii`) for emails, phone numbers and long digit sequences.
+Implementado:
+- `sanitize_input`: elimina caracteres potencialmente peligrosos y neutraliza patrones de prompt-injection.
+- `ethical_check`: bloquea consultas dañinas o fuera del alcance médico.
+- Enmascaramiento de PII en la persistencia de logs (`_mask_pii`) para correos electrónicos, teléfonos y secuencias largas de dígitos.
 
-Recommendations:
-- Do not include real patient data in `data/` during submission. Use synthetic or redacted examples.
-- For production, use secure secret management (Key Vault, AWS Secrets Manager) instead of `.env` files.
-- Encrypt logs at rest and apply RBAC for access to stored logs.
-- Add consent and data retention policies in `security.md` for formal documentation.
+Recomendaciones:
+- No incluir datos reales de pacientes en `data/` al preparar la entrega. Usar ejemplos sintéticos o redactados.
+- En producción, utilizar un gestor de secretos seguro (Key Vault, AWS Secrets Manager, etc.) en lugar de ficheros `.env`.
+- Cifrar los logs en reposo y aplicar control de acceso/roles (RBAC) para limitar quién puede acceder a los registros.
+- Añadir políticas de consentimiento y retención de datos en `security.md` para cumplir requisitos regulatorios.
+
+``` 

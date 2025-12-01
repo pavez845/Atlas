@@ -1,41 +1,70 @@
 # ChatbotEV3
-Evaluacion 3 Catalina Aguilar y Fernando Pavez
+Evaluación 3 — Catalina Aguilar y Fernando Pavez
 
-🏥 Agente Funcional Médico - Hospital Barros Luco (V2: Observabilidad)
-Este proyecto implementa un Agente Funcional Inteligente para el Hospital Barros Luco, refactorizado para la Evaluación Parcial N°3 (IL3.x), enfocándose en la Observabilidad, la Trazabilidad de Decisiones (ReAct) y la Seguridad de sistemas de IA en producción.
+🏥 Agente Funcional Médico — Hospital Barros Luco (v2: Observabilidad)
 
-El sistema utiliza un agente RAG para proveer información precisa del hospital, y ahora incluye un Dashboard de Monitoreo para medir rendimiento, latencia, y precisión.
+Descripción
+-----------
+Este repositorio contiene la implementación del Agente Funcional Médico enfocado en observabilidad, trazabilidad de decisiones y controles básicos de seguridad. La aplicación principal es una interfaz Streamlit con un pipeline RAG (retrieval-augmented generation), registro estructurado de interacciones y un dashboard de métricas.
 
-Módulo,Logro,Implementación en V2
-IL3.1,Métricas de Observabilidad,"Implementadas métricas de Latencia (total_time), Precisión (Faithfulness, Relevance) y Uso de Recursos (tokens_used)."
-IL3.2,Análisis de Registros y Trazabilidad,"Uso de structlog para logs estructurados (JSON) en terminal, registrando las decisiones del agente (RAG vs. LLM) y el tiempo de cada herramienta."
-IL3.3,Seguridad y Ética,Implementada Validación/Sanitización de Inputs (sanitize_input) y Filtros Éticos (ethical_check) para prevención de Prompt Injection y contenido inapropiado.
-IL3.4,Escalabilidad y Sostenibilidad,"Las métricas generadas (Latency, Tokens, Error Rate) proveen la base de datos para la propuesta de optimización de desempeño y rediseño."
+Características principales
+- Agente RAG con documentos hospitalarios por defecto.
+- Generación de embeddings y búsqueda híbrida (semántica + léxica).
+- Controles de seguridad: saneamiento de entradas y filtro ético.
+- Persistencia básica de logs en `data/logs.json` (con enmascaramiento de PII).
+- Dashboard de observabilidad (latencia, tokens usados, tasas de error, calidad de respuestas).
 
-🛠️ 2. Configuración y Prerrequisitos
-Prerrequisitos
-Python 3.10 o superior (Recomendado: 3.12).
+Requisitos
+----------
+- Python 3.10 o superior (recomendado 3.12).
+- Acceso a Internet para llamadas a la API de inferencia.
+- Una clave de inferencia: `OPENAI_API_KEY` (OpenAI/Azure) o `GITHUB_TOKEN` (GitHub Models).
 
-Acceso a Internet.
+Instalación rápida
+------------------
+1. Clona el repositorio:
 
-Clave de API de Inferencia (OpenAI o Azure AI).
-
-Pasos de Instalación
-Clonar el Repositorio (Si no lo has hecho ya):
-
-git clone https://github.com/pavez845/ChatbotEV3
+```powershell
+git clone https://github.com/pavez845/Atlas
 cd Chatbot_Ev3
+```
 
-Crear y Activar el Entorno Virtual:
+2. Crea y activa un entorno virtual (Windows PowerShell):
 
+```powershell
 python -m venv entorno
-.\entorno\Scripts\Activate.ps1   # Windows (PowerShell)
-# source entorno/bin/activate    # Linux/macOS
+.\entorno\Scripts\Activate.ps1
+```
 
-Instalar las Dependencias:
+3. Instala dependencias:
+
+```powershell
 pip install -r requirements.txt
+```
 
+Ejecución
+---------
+Inicia la aplicación Streamlit (archivo principal actual: `main_rag_agent_ev3.py`):
 
-Ejecuta la aplicación Streamlit:
+```powershell
+streamlit run main_rag_agent_ev3.py
+```
 
-streamlit run main_rag_agent_v2.py
+Uso de variables de entorno
+--------------------------
+Antes de ejecutar, crea un fichero `.env` (o exporta variables) con `OPENAI_API_KEY` o `GITHUB_TOKEN` según el proveedor que vayas a usar. Hay una plantilla en `.env.example`.
+
+Evidencias y entregables
+-------------------------
+- `main_rag_agent_ev3.py`: código de la aplicación y del agente.
+- `EFT_compliance_checklist.md`: checklist mapeando la rúbrica a evidencias en el repo.
+- `EFT_submission_notebook.ipynb`: notebook guía para la entrega.
+- `Documentacion/`: documentos de diseño, seguridad y decisiones arquitectónicas.
+
+Contacto
+-------
+Autores: Catalina Aguilar y Fernando Pavez
+
+Licencia / Avisos
+-----------------
+Este repositorio es una entrega académica. No incluya datos personales sensibles en `data/` al preparar la entrega. Para uso en producción, sustituir archivos `.env` por un gestor de secretos y aplicar cifrado/retención de registros.
